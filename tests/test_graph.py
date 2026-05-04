@@ -11,6 +11,7 @@ def test_trip_graph_contains_v02_nodes() -> None:
     assert "parse_intent" in node_names
     assert "generate_candidates" in node_names
     assert "select_core_places" in node_names
+    assert "route_optimizer" in node_names
     assert "build_itinerary" in node_names
     assert "estimate_budget" in node_names
     assert "verify_plan" in node_names
