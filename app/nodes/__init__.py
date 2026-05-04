@@ -3,6 +3,8 @@ from app.nodes.estimate_budget import estimate_budget
 from app.nodes.final_output import final_output
 from app.nodes.generate_candidates import generate_candidates
 from app.nodes.hotel_area_selector import hotel_area_selector
+from app.nodes.hotel_research import hotel_research
+from app.nodes.hotel_selector import hotel_selector
 from app.nodes.parse_intent import parse_intent
 from app.nodes.route_optimizer import route_optimizer
 from app.nodes.select_core_places import select_core_places
@@ -14,6 +16,8 @@ __all__ = [
     "select_core_places",
     "route_optimizer",
     "hotel_area_selector",
+    "hotel_research",
+    "hotel_selector",
     "build_itinerary",
     "estimate_budget",
     "verify_plan",

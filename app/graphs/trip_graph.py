@@ -7,6 +7,8 @@ from app.nodes import (
     final_output,
     generate_candidates,
     hotel_area_selector,
+    hotel_research,
+    hotel_selector,
     parse_intent,
     route_optimizer,
     select_core_places,
@@ -20,7 +22,7 @@ def build_trip_graph():
 
     V0.2 把原来的单节点生成拆成多个清晰步骤。
     当前仍由 build_itinerary 调用真实模型生成完整行程；
-    V0.6 已在生成行程前得到基于路线反推的住宿区域建议。
+    V0.6 已在生成行程前得到基于路线反推的住宿区域建议，并保留酒店候选与选择状态。
     """
 
     builder = StateGraph(TripGraphState)
@@ -29,6 +31,8 @@ def build_trip_graph():
     builder.add_node("select_core_places", select_core_places)
     builder.add_node("route_optimizer", route_optimizer)
     builder.add_node("hotel_area_selector", hotel_area_selector)
+    builder.add_node("hotel_research", hotel_research)
+    builder.add_node("hotel_selector", hotel_selector)
     builder.add_node("build_itinerary", build_itinerary)
     builder.add_node("estimate_budget", estimate_budget)
     builder.add_node("verify_plan", verify_plan)
@@ -39,7 +43,9 @@ def build_trip_graph():
     builder.add_edge("generate_candidates", "select_core_places")
     builder.add_edge("select_core_places", "route_optimizer")
     builder.add_edge("route_optimizer", "hotel_area_selector")
-    builder.add_edge("hotel_area_selector", "build_itinerary")
+    builder.add_edge("hotel_area_selector", "hotel_research")
+    builder.add_edge("hotel_research", "hotel_selector")
+    builder.add_edge("hotel_selector", "build_itinerary")
     builder.add_edge("build_itinerary", "estimate_budget")
     builder.add_edge("estimate_budget", "verify_plan")
     builder.add_edge("verify_plan", "final_output")
