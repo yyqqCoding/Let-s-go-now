@@ -21,8 +21,8 @@ def build_trip_graph():
     """构建旅游规划 LangGraph。
 
     V0.2 把原来的单节点生成拆成多个清晰步骤。
-    当前仍由 build_itinerary 调用真实模型生成完整行程；
-    V0.6 已在生成行程前得到基于路线反推的住宿区域建议，并保留酒店候选与选择状态。
+    V0.7 后 build_itinerary 只把已规划路线和住宿状态转换成行程表达，
+    不再重新选择景点、餐厅、酒店或调用完整规划模型。
     """
 
     builder = StateGraph(TripGraphState)

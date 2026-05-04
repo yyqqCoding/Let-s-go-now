@@ -18,7 +18,7 @@ class OpenAICompatibleTripPlannerLLM:
     并把模型输出重新校验为 TripPlanResponse。
 
     不同 LangGraph 节点可以通过 node_name 读取不同模型配置。
-    当前 build_itinerary 和 fallback_llm_research 都会使用该客户端。
+    V0.7 后完整行程表达已改为确定性节点，当前主流程主要由 fallback_llm_research 使用该客户端生成候选池。
     """
 
     def __init__(self, settings: Settings, node_name: str = "build_itinerary") -> None:
@@ -151,7 +151,7 @@ def _extract_json_payload(content: str) -> dict[str, Any]:
     """从模型文本中提取 JSON。
 
     真实兼容模型有时会返回 ```json 包裹的内容，这里只做格式剥离，
-    最终结构仍交给 TripPlanResponse 做严格校验。
+    最终结构仍交给调用方传入的 Pydantic schema 做严格校验。
     """
 
     text = content.strip()
