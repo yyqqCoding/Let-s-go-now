@@ -1,6 +1,8 @@
 from app.schemas.trip import (
     Activity,
+    BudgetBreakdown,
     BudgetEstimate,
+    BudgetLevel,
     DayPlan,
     TravelStyle,
     TripPlanRequest,
@@ -9,7 +11,9 @@ from app.schemas.trip import (
 
 __all__ = [
     "Activity",
+    "BudgetBreakdown",
     "BudgetEstimate",
+    "BudgetLevel",
     "DayPlan",
     "TravelStyle",
     "TripPlanRequest",
