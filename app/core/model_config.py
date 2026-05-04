@@ -50,9 +50,9 @@ def get_openai_model_config(settings: Settings, node_name: str) -> OpenAIModelCo
     config = _load_model_config(settings)
     openai_config = config.get("openai", {})
     default_config = openai_config.get("default", {})
-    node_config = openai_config.get("nodes", {}).get(node_name)
-    if node_config is None:
-        raise ValueError(f"Unsupported OpenAI-compatible model config node: {node_name}")
+    # 节点配置是可选项：没有单独配置时直接使用 default。
+    # 这样新增 LangGraph 节点不需要立刻修改 model_config.toml。
+    node_config = openai_config.get("nodes", {}).get(node_name) or {}
 
     return OpenAIModelConfig(
         node_name=node_name,

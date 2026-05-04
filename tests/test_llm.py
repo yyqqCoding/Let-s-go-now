@@ -74,6 +74,37 @@ temperature = 0.3
     assert config.temperature == 0.3
 
 
+def test_model_config_uses_default_when_node_config_is_missing(tmp_path) -> None:
+    model_config_file = tmp_path / "model_config.toml"
+    model_config_file.write_text(
+        """[llm]
+provider = "openai_compatible"
+
+[openai.default]
+api_key = "global-key"
+base_url = "https://global.example/v1"
+model = "global-model"
+temperature = 0.2
+
+[openai.nodes.generate_plan]
+api_key = ""
+base_url = ""
+model = ""
+temperature = 0
+""",
+        encoding="utf-8",
+    )
+    settings = Settings(MODEL_CONFIG_FILE=str(model_config_file))
+
+    config = get_openai_model_config(settings, "build_itinerary")
+
+    assert config.node_name == "build_itinerary"
+    assert config.model == "global-model"
+    assert config.api_key == "global-key"
+    assert config.base_url == "https://global.example/v1"
+    assert config.temperature == 0.2
+
+
 def test_openai_compatible_llm_generates_real_structured_plan() -> None:
     settings = Settings()
     request = TripPlanRequest(

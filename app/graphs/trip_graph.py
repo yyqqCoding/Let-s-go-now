@@ -1,21 +1,32 @@
 from langgraph.graph import END, START, StateGraph
 
 from app.graphs.trip_state import TripGraphState
-from app.nodes.generate_plan import generate_plan
+from app.nodes import build_itinerary, estimate_budget, final_output, generate_candidates, parse_intent, verify_plan
 from app.schemas.trip import TripPlanRequest, TripPlanResponse
 
 
 def build_trip_graph():
     """构建旅游规划 LangGraph。
 
-    第一阶段只有一个节点：generate_plan。
-    后续新增节点时，只需要在这里注册节点并调整边关系。
+    V0.2 把原来的单节点生成拆成多个清晰步骤。
+    当前仍由 build_itinerary 调用真实模型生成完整行程，其他节点先稳定状态边界。
     """
 
     builder = StateGraph(TripGraphState)
-    builder.add_node("generate_plan", generate_plan)
-    builder.add_edge(START, "generate_plan")
-    builder.add_edge("generate_plan", END)
+    builder.add_node("parse_intent", parse_intent)
+    builder.add_node("generate_candidates", generate_candidates)
+    builder.add_node("build_itinerary", build_itinerary)
+    builder.add_node("estimate_budget", estimate_budget)
+    builder.add_node("verify_plan", verify_plan)
+    builder.add_node("final_output", final_output)
+
+    builder.add_edge(START, "parse_intent")
+    builder.add_edge("parse_intent", "generate_candidates")
+    builder.add_edge("generate_candidates", "build_itinerary")
+    builder.add_edge("build_itinerary", "estimate_budget")
+    builder.add_edge("estimate_budget", "verify_plan")
+    builder.add_edge("verify_plan", "final_output")
+    builder.add_edge("final_output", END)
     return builder.compile()
 
 
