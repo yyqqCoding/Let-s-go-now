@@ -1,7 +1,10 @@
+import inspect
+
 import pytest
 
 from app.core.config import Settings
 from app.core.model_config import get_llm_provider, get_openai_model_config
+from app.llm import get_trip_planner_llm
 from app.llm.openai_compatible import OpenAICompatibleTripPlannerLLM
 from app.schemas.trip import TripPlanRequest
 
@@ -18,7 +21,7 @@ base_url = "https://example.test/v1"
 model = "test-model"
 temperature = 0
 
-[openai.nodes.generate_plan]
+[openai.nodes.build_itinerary]
 api_key = ""
 base_url = ""
 model = ""
@@ -55,7 +58,7 @@ base_url = "https://global.example/v1"
 model = "global-model"
 temperature = 0
 
-[openai.nodes.generate_plan]
+[openai.nodes.build_itinerary]
 api_key = "node-key"
 base_url = "https://node.example/v1"
 model = "node-model"
@@ -65,7 +68,7 @@ temperature = 0.3
     )
     settings = Settings(MODEL_CONFIG_FILE=str(model_config_file))
 
-    config = get_openai_model_config(settings, "generate_plan")
+    config = get_openai_model_config(settings, "build_itinerary")
 
     assert get_llm_provider(settings) == "openai_compatible"
     assert config.model == "node-model"
@@ -86,7 +89,7 @@ base_url = "https://global.example/v1"
 model = "global-model"
 temperature = 0.2
 
-[openai.nodes.generate_plan]
+[openai.nodes.fallback_llm_research]
 api_key = ""
 base_url = ""
 model = ""
@@ -103,6 +106,12 @@ temperature = 0
     assert config.api_key == "global-key"
     assert config.base_url == "https://global.example/v1"
     assert config.temperature == 0.2
+
+
+def test_get_trip_planner_llm_requires_explicit_node_name() -> None:
+    signature = inspect.signature(get_trip_planner_llm)
+
+    assert signature.parameters["node_name"].default is inspect.Parameter.empty
 
 
 def test_openai_compatible_llm_generates_real_structured_plan() -> None:

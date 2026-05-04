@@ -14,7 +14,7 @@ LLMProvider = Literal["openai_compatible"]
 class OpenAIModelConfig:
     """单个 LangGraph 节点实际使用的模型配置。
 
-    node_name 用于标识节点，例如 generate_plan。
+    node_name 用于标识节点，例如 build_itinerary 或 fallback_llm_research。
     model/api_key/base_url/temperature 来自根目录 model_config.toml。
     节点专属配置为空时，会回退到 openai.default。
     """

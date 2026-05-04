@@ -1,9 +1,24 @@
 import pytest
 from pydantic import ValidationError
 
+from app.graphs.trip_state import TripGraphState
+from app.nodes.generate_candidates import generate_candidates
 from app.nodes.merge_candidates import merge_candidate_results
+from app.nodes.research_sources import amap_poi_research, dianping_research, fallback_llm_research, xiaohongshu_research
 from app.schemas.candidates import CandidatePlace, CandidatePool, PlaceType, ResearchSourceResult
 from app.schemas.trip import TripPlanRequest
+
+
+def _trip_request() -> TripPlanRequest:
+    return TripPlanRequest(
+        destination="杭州",
+        days=2,
+        budget=1500,
+        people=2,
+        preferences=["自然风景", "本地美食"],
+        avoid=["排队"],
+        travel_style="relaxed",
+    )
 
 
 def test_candidate_place_requires_unified_fields() -> None:
@@ -87,15 +102,7 @@ def test_merge_candidate_results_splits_types_and_deduplicates_by_confidence() -
     ]
 
     pool = merge_candidate_results(
-        request=TripPlanRequest(
-            destination="杭州",
-            days=2,
-            budget=1500,
-            people=2,
-            preferences=["自然风景", "本地美食"],
-            avoid=["排队"],
-            travel_style="relaxed",
-        ),
+        request=_trip_request(),
         source_results=source_results,
     )
 
@@ -106,3 +113,99 @@ def test_merge_candidate_results_splits_types_and_deduplicates_by_confidence() -
     assert len(pool.foods) == 1
     assert pool.foods[0].name == "知味观"
     assert [source.source for source in pool.source_status] == ["fallback_llm_research", "amap_poi_research"]
+
+
+def test_external_research_sources_return_not_enabled_without_candidates() -> None:
+    request = _trip_request()
+
+    results = [xiaohongshu_research(request), dianping_research(request), amap_poi_research(request)]
+
+    assert [result.source for result in results] == ["xiaohongshu_research", "dianping_research", "amap_poi_research"]
+    assert all(result.status == "not_enabled" for result in results)
+    assert all(result.candidates == [] for result in results)
+
+
+def test_generate_candidates_node_merges_research_results(monkeypatch) -> None:
+    request = _trip_request()
+    fallback_pool = CandidatePool(
+        destination="杭州",
+        preferences=request.preferences,
+        avoid=request.avoid,
+        attractions=[
+            CandidatePlace(
+                name="西溪湿地",
+                type=PlaceType.ATTRACTION,
+                source="fallback_llm_research",
+                address="杭州市西湖区天目山路",
+                lat=30.27,
+                lng=120.06,
+                tags=["自然风景"],
+                reason="符合自然风景偏好。",
+                estimated_cost=80,
+                estimated_duration=180,
+                confidence=0.8,
+                raw_evidence="真实模型候选。",
+            )
+        ],
+        foods=[
+            CandidatePlace(
+                name="新白鹿",
+                type=PlaceType.FOOD,
+                source="fallback_llm_research",
+                address="杭州市上城区",
+                lat=30.25,
+                lng=120.16,
+                tags=["本地美食"],
+                reason="符合本地美食偏好。",
+                estimated_cost=70,
+                estimated_duration=90,
+                confidence=0.75,
+                raw_evidence="真实模型候选。",
+            )
+        ],
+        source_status=[],
+    )
+
+    class StubLLM:
+        def generate_candidates(self, request: TripPlanRequest) -> CandidatePool:
+            return fallback_pool
+
+    monkeypatch.setattr("app.nodes.research_sources.get_trip_planner_llm", lambda node_name: StubLLM())
+
+    result = generate_candidates(TripGraphState(request=request, intent=request.model_dump(mode="json")))
+
+    pool = result["candidates"]
+    assert isinstance(pool, CandidatePool)
+    assert len(pool.attractions) == 1
+    assert len(pool.foods) == 1
+    assert [status.source for status in pool.source_status] == [
+        "xiaohongshu_research",
+        "dianping_research",
+        "amap_poi_research",
+        "fallback_llm_research",
+    ]
+    assert pool.source_status[-1].status == "enabled"
+
+
+def test_fallback_llm_research_returns_enabled_candidates(monkeypatch) -> None:
+    request = _trip_request()
+    fallback_pool = CandidatePool(
+        destination="杭州",
+        preferences=request.preferences,
+        avoid=request.avoid,
+        attractions=[],
+        foods=[],
+        source_status=[],
+    )
+
+    class StubLLM:
+        def generate_candidates(self, request: TripPlanRequest) -> CandidatePool:
+            return fallback_pool
+
+    monkeypatch.setattr("app.nodes.research_sources.get_trip_planner_llm", lambda node_name: StubLLM())
+
+    result = fallback_llm_research(request)
+
+    assert result.source == "fallback_llm_research"
+    assert result.status == "enabled"
+    assert result.candidates == []

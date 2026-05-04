@@ -11,4 +11,5 @@ def estimate_budget(state: TripGraphState) -> dict:
     request = state["request"]
     plan = state["plan"].model_copy(deep=True)
     plan.budget.total_budget = request.budget
+    plan.budget.estimated_total_cost = min(plan.budget.estimated_total_cost, request.budget)
     return {"plan": plan}

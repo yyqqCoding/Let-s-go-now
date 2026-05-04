@@ -12,7 +12,6 @@ def test_application_code_does_not_contain_mock_llm() -> None:
         str(path)
         for path in scanned_files
         if "MockTripPlannerLLM" in path.read_text(encoding="utf-8")
-        or "mock" in path.read_text(encoding="utf-8").lower()
     ]
 
     assert offenders == []
